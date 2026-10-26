@@ -1,0 +1,6 @@
+# Copy this file to terraform.tfvars for local overrides.
+# Do not commit terraform.tfvars when it contains environment-specific values.
+
+aws_region   = "eu-north-1"
+project_name = "cloud-native-platform"
+environment  = "dev"
