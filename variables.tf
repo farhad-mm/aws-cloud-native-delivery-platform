@@ -39,3 +39,13 @@ variable "private_subnet_cidrs" {
   type        = list(string)
   default     = ["10.20.10.0/24", "10.20.11.0/24"]
 }
+variable "enable_nat_gateway" {
+  description = "Whether to create one NAT Gateway in each public subnet."
+  type        = bool
+  default     = true
+}
+variable "admin_cidr" {
+  description = "Your public IP address allowed to access the EKS API, in CIDR format."
+  type        = string
+  default     = "127.0.0.1/32"
+}
