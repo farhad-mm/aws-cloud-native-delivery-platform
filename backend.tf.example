@@ -1,0 +1,12 @@
+# Optional remote state. Copy to backend.tf, set the bucket name, then run:
+#   terraform init -migrate-state
+# Requires a recent Terraform version (1.10 or later) for use_lockfile.
+terraform {
+  backend "s3" {
+    bucket       = "REPLACE-WITH-YOUR-STATE-BUCKET"
+    key          = "cloud-native-platform/dev/terraform.tfstate"
+    region       = "eu-north-1"
+    encrypt      = true
+    use_lockfile = true
+  }
+}

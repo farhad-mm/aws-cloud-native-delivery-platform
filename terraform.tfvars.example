@@ -1,6 +1,12 @@
-# Copy this file to terraform.tfvars for local overrides.
-# Do not commit terraform.tfvars when it contains environment-specific values.
+# Copy this file to terraform.tfvars and edit the values.
+# terraform.tfvars is git-ignored and must never be committed.
 
 aws_region   = "eu-north-1"
 project_name = "cloud-native-platform"
 environment  = "dev"
+
+# Your public IP in CIDR form, for example "203.0.113.10/32"
+admin_cidr = "203.0.113.10/32"
+
+# IAM user or role that receives cluster-admin access to EKS
+admin_principal_arn = "arn:aws:iam::123456789012:user/your-user"

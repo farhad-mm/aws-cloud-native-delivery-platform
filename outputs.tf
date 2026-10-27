@@ -32,3 +32,13 @@ output "nat_gateway_public_ips" {
   description = "Public Elastic IP addresses used by the NAT Gateways."
   value       = aws_eip.nat[*].public_ip
 }
+
+output "eks_cluster_name" {
+  description = "Name of the EKS cluster."
+  value       = aws_eks_cluster.main.name
+}
+
+output "eks_cluster_endpoint" {
+  description = "Kubernetes API endpoint."
+  value       = aws_eks_cluster.main.endpoint
+}

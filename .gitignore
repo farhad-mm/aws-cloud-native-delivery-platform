@@ -26,3 +26,4 @@ terraform.rc
 *.pem
 *.key
 .env
+tfplan*

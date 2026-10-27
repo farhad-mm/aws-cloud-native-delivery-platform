@@ -5,6 +5,7 @@ Infrastructure as Code project that provisions an Amazon EKS environment on AWS 
 ![Terraform](https://img.shields.io/badge/IaC-Terraform-7B42BC)
 ![AWS](https://img.shields.io/badge/Cloud-AWS-FF9900)
 ![Kubernetes](https://img.shields.io/badge/Orchestration-Kubernetes-326CE5)
+![Terraform CI](https://github.com/farhad-mm/aws-cloud-native-delivery-platform/actions/workflows/terraform-ci.yml/badge.svg)
 
 > **Cost note:** This environment was built for testing. The cluster, NAT Gateways, and worker nodes bill hourly while running, so everything was destroyed after validation. See [Cleanup](#cleanup).
 
@@ -15,9 +16,11 @@ Infrastructure as Code project that provisions an Amazon EKS environment on AWS 
 - [Repository structure](#repository-structure)
 - [Prerequisites](#prerequisites)
 - [Deployment](#deployment)
+- [Configuration](#configuration)
 - [Verification](#verification)
 - [Verified results](#verified-results)
 - [Design decisions](#design-decisions)
+- [Known limitations](#known-limitations)
 - [Cleanup](#cleanup)
 - [Key takeaways](#key-takeaways)
 - [Troubleshooting](#troubleshooting)
@@ -120,16 +123,23 @@ flowchart LR
 
 ```text
 .
+├── .github/
+│   └── workflows/
+│       └── terraform-ci.yml     # fmt check, init, and validate on every push and PR
 ├── k8s/
 │   └── nginx.yaml               # Deployment and LoadBalancer Service
 ├── docs/
 │   └── images/                  # Exported diagrams
-├── main.tf                      # VPC, NAT, IAM, EKS, node group, access entries
+├── network.tf                   # VPC, subnets, route tables, Internet Gateway, NAT Gateways
+├── security.tf                  # Security groups
+├── iam.tf                       # IAM roles and policy attachments
+├── eks.tf                       # EKS cluster, node group, access entries
 ├── variables.tf                 # Input variables
 ├── locals.tf                    # Shared locals such as common tags
 ├── providers.tf                 # AWS provider configuration
 ├── versions.tf                  # Terraform and provider version constraints
-├── outputs.tf                   # VPC, subnet, and NAT outputs
+├── outputs.tf                   # Infrastructure and cluster outputs
+├── backend.tf.example           # Optional S3 remote state template
 ├── terraform.tfvars.example     # Template for local settings
 ├── .terraform.lock.hcl          # Pinned provider versions
 ├── .gitignore                   # Excludes tfvars, state, and plan files
@@ -166,7 +176,12 @@ aws sts get-caller-identity
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-Set `admin_cidr` to your public IP in `/32` form, for example `203.0.113.10/32`. The file is git-ignored and must never be committed.
+Set these values:
+
+- `admin_cidr`: your public IP in `/32` form, for example `203.0.113.10/32`.
+- `admin_principal_arn`: the IAM user or role that receives cluster-admin access. Find yours with `aws sts get-caller-identity --query Arn --output text`.
+
+The file is git-ignored and must never be committed.
 
 ### 4. Initialize and validate
 
@@ -216,6 +231,35 @@ curl -I http://<EXTERNAL-IP-HOSTNAME>
 ```
 
 Expect `HTTP/1.1 200 OK`, or open the hostname in a browser.
+
+## Configuration
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `kubernetes_version` | `1.35` | EKS version. Use one in standard support, because older versions are billed at a higher extended-support rate. |
+| `node_instance_types` | `["t3.medium"]` | EC2 instance types for the managed node group. |
+| `node_desired_size`, `node_min_size`, `node_max_size` | `2`, `2`, `3` | Node group scaling. |
+| `enable_nat_gateway` | `true` | Create one NAT Gateway per public subnet. |
+| `admin_cidr` | `127.0.0.1/32` | Public IP allowed to reach the EKS API. |
+| `admin_principal_arn` | none, required | IAM user or role granted cluster-admin access. |
+
+### Optional: remote state
+
+Terraform keeps state locally by default. To store it in S3 with locking, use a recent Terraform version (1.10 or later) and run:
+
+```bash
+BUCKET=<your-unique-bucket-name>
+aws s3api create-bucket --bucket "$BUCKET" --region eu-north-1 \
+  --create-bucket-configuration LocationConstraint=eu-north-1
+aws s3api put-bucket-versioning --bucket "$BUCKET" --versioning-configuration Status=Enabled
+aws s3api put-public-access-block --bucket "$BUCKET" \
+  --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+cp backend.tf.example backend.tf
+# edit backend.tf and set the bucket name, then:
+terraform init -migrate-state
+```
+
+Remote state is not enabled by default.
 
 ## Verification
 
@@ -296,7 +340,19 @@ Region checks afterwards showed no EKS clusters, NAT Gateways, Elastic IPs, load
 | EKS access entries | Cluster admin rights are granted through the EKS access entries API. The authentication mode is `API_AND_CONFIG_MAP`, so the legacy `aws-auth` ConfigMap remains available as a fallback. |
 | Resource requests and limits | The scheduler places pods with enough capacity, and one pod cannot starve the others. |
 | Readiness and liveness probes | Unready pods stop receiving traffic, and hung containers are restarted. |
+| Configurable, supported EKS version | Versions past standard support are billed at a higher extended-support rate and are eventually upgraded automatically by AWS. |
+| Terraform split by concern | `network.tf`, `security.tf`, `iam.tf`, and `eks.tf` are easier to review than one large file. |
+| CI without cloud credentials | GitHub Actions runs `fmt`, `init -backend=false`, and `validate` with no AWS access. |
 | `LoadBalancer` Service | The simplest way to expose a workload publicly on EKS. |
+
+## Known limitations
+
+- State is local by default. A remote state template is provided but not enabled.
+- Single environment (`dev`), with no workspaces or separate state per environment.
+- The application is served over plain HTTP on the load balancer hostname. There is no Ingress, DNS, or TLS.
+- No monitoring or logging yet. Prometheus and Grafana are on the roadmap.
+- The EKS API is reachable only from one administrator IP. A team setup would use a VPN or bastion.
+- CI checks formatting and validity only. It does not run plans or deploy.
 
 ## Cleanup
 

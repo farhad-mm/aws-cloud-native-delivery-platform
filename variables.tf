@@ -49,3 +49,43 @@ variable "admin_cidr" {
   type        = string
   default     = "127.0.0.1/32"
 }
+
+variable "kubernetes_version" {
+  description = "Kubernetes version for the EKS cluster. Use a version in standard support to avoid extended-support charges."
+  type        = string
+  default     = "1.35"
+}
+
+variable "node_instance_types" {
+  description = "EC2 instance types for the managed node group."
+  type        = list(string)
+  default     = ["t3.medium"]
+}
+
+variable "node_desired_size" {
+  description = "Desired number of worker nodes."
+  type        = number
+  default     = 2
+}
+
+variable "node_min_size" {
+  description = "Minimum number of worker nodes."
+  type        = number
+  default     = 2
+}
+
+variable "node_max_size" {
+  description = "Maximum number of worker nodes."
+  type        = number
+  default     = 3
+}
+
+variable "admin_principal_arn" {
+  description = "ARN of the IAM user or role that receives cluster-admin access to the EKS cluster."
+  type        = string
+
+  validation {
+    condition     = can(regex("^arn:aws:iam::[0-9]{12}:(user|role)/", var.admin_principal_arn))
+    error_message = "Provide the ARN of an IAM user or role."
+  }
+}
