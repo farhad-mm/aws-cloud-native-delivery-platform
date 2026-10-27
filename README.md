@@ -19,7 +19,7 @@ Infrastructure as Code project that provisions an Amazon EKS environment on AWS 
 - [Verified results](#verified-results)
 - [Design decisions](#design-decisions)
 - [Cleanup](#cleanup)
-- [Lessons learned](#lessons-learned)
+- [Key takeaways](#key-takeaways)
 - [Troubleshooting](#troubleshooting)
 - [Roadmap](#roadmap)
 
@@ -325,7 +325,7 @@ aws ec2 describe-volumes --region eu-north-1 --query 'Volumes[].VolumeId'
 
 The final destroy reported `0 added, 0 changed, 32 destroyed`, and the checks above came back empty.
 
-## Lessons learned
+## Key takeaways
 
 - Terraform state tracks only what Terraform created. Resources created by Kubernetes, such as the load balancer, must be removed separately.
 - Private subnets with NAT Gateways give nodes outbound access without exposing them to inbound traffic.
