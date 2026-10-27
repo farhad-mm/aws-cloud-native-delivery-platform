@@ -16,7 +16,7 @@ Infrastructure as Code project that provisions an Amazon EKS environment on AWS 
 - [Prerequisites](#prerequisites)
 - [Deployment](#deployment)
 - [Verification](#verification)
-- [Screenshots](#screenshots)
+- [Verified results](#verified-results)
 - [Design decisions](#design-decisions)
 - [Cleanup](#cleanup)
 - [Lessons learned](#lessons-learned)
@@ -123,7 +123,7 @@ flowchart LR
 ├── k8s/
 │   └── nginx.yaml               # Deployment and LoadBalancer Service
 ├── docs/
-│   └── images/                  # Screenshots and exported diagrams
+│   └── images/                  # Exported diagrams
 ├── main.tf                      # VPC, NAT, IAM, EKS, node group, access entries
 ├── variables.tf                 # Input variables
 ├── locals.tf                    # Shared locals such as common tags
@@ -236,18 +236,54 @@ Expected results:
 | Resources | Requests `100m` CPU and `128Mi` memory; limits `250m` CPU and `256Mi` memory |
 | Probes | Readiness and liveness HTTP checks on port 80 |
 
-## Screenshots
+## Verified results
 
-> **TODO:** Add screenshots here. Screenshots must be captured while the environment is running, because it has since been destroyed.
+Output captured during the build. The environment has since been destroyed.
 
-| Screenshot | File | Status |
-|---|---|---|
-| Nginx welcome page via the load balancer | `docs/images/nginx-welcome.png` | Placeholder |
-| `kubectl get pods -o wide` output | `docs/images/pods.png` | Placeholder |
-| `terraform apply` summary | `docs/images/terraform-apply.png` | Placeholder |
-| `terraform apply tfplan-destroy` summary | `docs/images/terraform-destroy.png` | Placeholder |
+**Pods spread across two worker nodes**
 
-<!-- When a file exists, add: ![Nginx welcome page](docs/images/nginx-welcome.png) -->
+```text
+NAME                    READY   STATUS    RESTARTS   IP             NODE
+nginx-87cdd7684-g78d4   1/1     Running   0          10.20.11.241   ip-10-20-11-98.eu-north-1.compute.internal
+nginx-87cdd7684-kgj2c   1/1     Running   0          10.20.10.39    ip-10-20-10-75.eu-north-1.compute.internal
+```
+
+**Resource requests and limits**
+
+```text
+Limits:
+  cpu:     250m
+  memory:  256Mi
+Requests:
+  cpu:        100m
+  memory:     128Mi
+```
+
+**Health probes**
+
+```text
+Liveness:     http-get http://:80/ delay=15s timeout=1s period=20s #success=1 #failure=3
+Readiness:    http-get http://:80/ delay=5s timeout=1s period=10s #success=1 #failure=3
+```
+
+**Rolling update**
+
+```text
+deployment "nginx" successfully rolled out
+```
+
+**Public access**
+
+The `LoadBalancer` Service received an AWS hostname, and the Nginx welcome page loaded in a browser through it.
+
+**Teardown**
+
+```text
+Plan: 0 to add, 0 to change, 32 to destroy.
+Apply complete! Resources: 0 added, 0 changed, 32 destroyed.
+```
+
+Region checks afterwards showed no EKS clusters, NAT Gateways, Elastic IPs, load balancers, or volumes.
 
 ## Design decisions
 
