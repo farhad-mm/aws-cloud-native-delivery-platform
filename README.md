@@ -30,84 +30,17 @@ Infrastructure as Code project that provisions an Amazon EKS environment on AWS 
 
 ### Infrastructure overview
 
-```mermaid
-flowchart TB
-    user["Internet user"]
-    admin["Administrator with kubectl"]
-
-    subgraph aws["AWS region eu-north-1"]
-        igw["Internet Gateway"]
-        eks["EKS control plane managed by AWS"]
-
-        subgraph vpc["VPC"]
-            elb["Load balancer created by the Kubernetes Service"]
-
-            subgraph az1["Availability Zone 1"]
-                subgraph pub1["Public subnet 1"]
-                    nat1["NAT Gateway 1"]
-                end
-                subgraph priv1["Private subnet 1"]
-                    node1["Worker node 1"]
-                    pod1["Nginx pod 1"]
-                end
-            end
-
-            subgraph az2["Availability Zone 2"]
-                subgraph pub2["Public subnet 2"]
-                    nat2["NAT Gateway 2"]
-                end
-                subgraph priv2["Private subnet 2"]
-                    node2["Worker node 2"]
-                    pod2["Nginx pod 2"]
-                end
-            end
-        end
-    end
-
-    user --> elb
-    elb --> node1
-    elb --> node2
-    node1 --> pod1
-    node2 --> pod2
-    node1 --> nat1
-    node2 --> nat2
-    nat1 --> igw
-    nat2 --> igw
-    admin -->|"API access limited to admin CIDR"| eks
-    eks --> node1
-    eks --> node2
-```
+![Architecture diagram: AWS VPC, EKS, NAT Gateways, and load balancer](docs/images/architecture.png)
 
 ### Request flow
 
-```mermaid
-sequenceDiagram
-    actor U as Internet user
-    participant LB as AWS load balancer
-    participant N as Worker node
-    participant P as Ready Nginx pod
-
-    U->>LB: HTTP request on port 80
-    LB->>N: Forward to the Service NodePort
-    N->>P: kube-proxy routes to a ready pod
-    P-->>U: Nginx welcome page
-```
+![Request flow from the internet user to the Nginx pod](docs/images/request-flow.png)
 
 Pods that fail their readiness probe are removed from the Service endpoints, so the load balancer never routes traffic to them.
 
 ### Delivery workflow
 
-```mermaid
-flowchart LR
-    A["terraform init and validate"] --> B["terraform plan"]
-    B --> C["terraform apply"]
-    C --> D["aws eks update-kubeconfig"]
-    D --> E["kubectl apply"]
-    E --> F["Verify in browser"]
-    F --> G["kubectl delete"]
-    G --> H["terraform plan -destroy"]
-    H --> I["terraform apply destroy plan"]
-```
+![Delivery workflow: provision, deploy, verify, and tear down](docs/images/delivery-workflow.png)
 
 ## What this project demonstrates
 
