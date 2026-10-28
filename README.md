@@ -1,6 +1,6 @@
 # AWS Cloud-Native Delivery Platform
 
-Infrastructure as Code project that provisions an Amazon EKS environment on AWS with Terraform and runs a hardened Nginx workload on it with Kubernetes.
+Infrastructure as Code project that provisions an Amazon EKS environment on AWS with Terraform and runs a resource-limited, health-checked Nginx workload on it with Kubernetes.
 
 ![Terraform](https://img.shields.io/badge/IaC-Terraform-7B42BC)
 ![AWS](https://img.shields.io/badge/Cloud-AWS-FF9900)
@@ -35,8 +35,6 @@ Infrastructure as Code project that provisions an Amazon EKS environment on AWS 
 ### Request flow
 
 ![Request flow from the internet user to the Nginx pod](docs/images/request-flow.png)
-
-Pods that fail their readiness probe are removed from the Service endpoints, so the load balancer never routes traffic to them.
 
 ### Delivery workflow
 
